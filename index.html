@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Toolkit — The Appiarist</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --text2: #888;
+    --accent: #DD2B23;
+    --accent-glow: rgba(221, 43, 35, 0.15);
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --yellow: #eab308;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
+
+  /* Layout */
+  .app { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  .header {
+    display: flex; align-items: center; gap: 16px;
+    padding-bottom: 24px; border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header span { color: var(--text2); font-size: 14px; }
+  .header .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+  /* Setup bar */
+  .setup {
+    display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap;
+  }
+  .setup input, .setup select {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif;
+  }
+  .setup input { flex: 1; min-width: 200px; }
+  .setup input::placeholder { color: var(--text2); }
+  .setup .key-saved { color: var(--green); font-size: 12px; align-self: center; }
+
+  /* Photo upload */
+  .photos {
+    display: flex; gap: 12px; margin-bottom: 32px; align-items: center;
+  }
+  .photo-slot {
+    width: 80px; height: 80px; border-radius: 12px;
+    border: 2px dashed var(--border); display: flex;
+    align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden; position: relative;
+    transition: border-color 0.2s;
+  }
+  .photo-slot:hover { border-color: var(--accent); }
+  .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-slot .plus { color: var(--text2); font-size: 24px; }
+  .photo-slot .remove {
+    position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7);
+    color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px;
+    font-size: 12px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center;
+  }
+  .photos label { color: var(--text2); font-size: 13px; }
+
+  /* Main input */
+  .input-section { margin-bottom: 32px; }
+  .input-section label {
+    display: block; margin-bottom: 8px; font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif; font-size: 14px;
+  }
+  textarea {
+    width: 100%; min-height: 160px; background: var(--surface);
+    border: 1px solid var(--border); color: var(--text);
+    padding: 16px; border-radius: 12px; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; resize: vertical;
+    line-height: 1.6;
+  }
+  textarea::placeholder { color: var(--text2); }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* Generate button */
+  .generate-row { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+  .btn {
+    padding: 12px 24px; border-radius: 10px; border: none;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 14px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #c42520; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-ghost { background: transparent; color: var(--text2); }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* Results grid */
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px) { .results { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; position: relative;
+  }
+  .card h3 {
+    font-size: 14px; color: var(--text2); margin-bottom: 16px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* Thumbnail result */
+  .thumbnail-grid { display: flex; flex-direction: column; gap: 16px; }
+  .thumbnail-item {
+    border-radius: 12px; overflow: hidden; position: relative;
+    aspect-ratio: 16/9; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .thumbnail-item img { width: 100%; height: 100%; object-fit: cover; }
+  .thumbnail-item .loading {
+    color: var(--text2); font-size: 13px; text-align: center;
+  }
+  .thumbnail-actions {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+
+  /* Titles */
+  .title-list { display: flex; flex-direction: column; gap: 8px; }
+  .title-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: var(--surface2);
+    border-radius: 10px; cursor: pointer; transition: background 0.15s;
+  }
+  .title-item:hover { background: var(--border); }
+  .title-item .num {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    color: var(--accent); font-size: 13px; min-width: 20px;
+  }
+  .title-item .text { font-size: 14px; flex: 1; line-height: 1.4; }
+  .title-item .copy-icon { color: var(--text2); font-size: 12px; }
+
+  /* Description */
+  .description-box {
+    background: var(--surface2); border-radius: 10px;
+    padding: 16px; font-size: 13px; line-height: 1.7;
+    white-space: pre-wrap; color: var(--text); min-height: 200px;
+    position: relative;
+  }
+  .description-box .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+  }
+
+  /* Prompt used */
+  .prompt-preview {
+    margin-top: 12px; padding: 12px; background: var(--surface2);
+    border-radius: 8px; font-size: 11px; color: var(--text2);
+    max-height: 100px; overflow-y: auto; white-space: pre-wrap;
+  }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+    margin-right: 8px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); color: var(--green); padding: 10px 20px;
+    border-radius: 8px; font-size: 13px; z-index: 100;
+    border: 1px solid var(--border);
+    animation: fadeInUp 0.2s ease-out;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* Full width card */
+  .card.full { grid-column: 1 / -1; }
+
+  /* Style selector */
+  .style-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    padding: 6px 14px; border-radius: 20px; font-size: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.15s; color: var(--text2);
+  }
+  .chip.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+  .chip:hover { border-color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="dot"></div>
+    <h1>YT Toolkit</h1>
+    <span>The Appiarist — @thepawelk</span>
+  </div>
+
+  <!-- API Keys -->
+  <div class="setup">
+    <input type="password" id="replicateKey" placeholder="Replicate API key (r8_...)" />
+    <input type="password" id="openaiKey" placeholder="OpenAI API key (sk-...)" />
+    <button class="btn btn-secondary" onclick="saveKeys()">Save Keys</button>
+    <span class="key-saved" id="keySaved" style="display:none">✓ Saved</span>
+  </div>
+
+  <!-- Photos -->
+  <div class="photos">
+    <label>Your photos:</label>
+    <div class="photo-slot" id="photo1" onclick="uploadPhoto(0)">
+      <span class="plus">+</span>
+    </div>
+    <div class="photo-slot" id="photo2" onclick="uploadPhoto(1)">
+      <span class="plus">+</span>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" style="display:none" />
+    <span style="color:var(--text2);font-size:12px">Upload 1-2 photos for thumbnail reference</span>
+  </div>
+
+  <!-- Input -->
+  <div class="input-section">
+    <label>Video Topic / Transcript / Summary</label>
+    <textarea id="topicInput" placeholder="Paste your video transcript, topic description, or a brief summary...&#10;&#10;Example: 'Building a $10K/mo app with React Native and AI — how I went from zero to revenue in 3 months using vibecoding'"></textarea>
+  </div>
+
+  <!-- Thumbnail style -->
+  <div class="input-section">
+    <label>Thumbnail Style</label>
+    <div class="style-chips">
+      <div class="chip active" data-style="bold-text">Bold Text + Face</div>
+      <div class="chip" data-style="before-after">Before / After</div>
+      <div class="chip" data-style="screenshot">App Screenshot</div>
+      <div class="chip" data-style="minimal">Minimal / Clean</div>
+      <div class="chip" data-style="cinematic">Cinematic</div>
+      <div class="chip" data-style="meme">Meme / Reaction</div>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <div class="generate-row">
+    <button class="btn btn-primary" id="generateAll" onclick="generateAll()">Generate All</button>
+    <button class="btn btn-secondary" onclick="generateTitles()">Titles Only</button>
+    <button class="btn btn-secondary" onclick="generateDescription()">Description Only</button>
+    <button class="btn btn-secondary" onclick="generateThumbnail()">Thumbnail Only</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results">
+    <!-- Titles -->
+    <div class="card">
+      <h3>📝 Title Options</h3>
+      <div class="title-list" id="titleResults">
+        <div style="color:var(--text2);font-size:13px;">Generate to see title suggestions</div>
+      </div>
+    </div>
+
+    <!-- Thumbnail -->
+    <div class="card">
+      <h3>🎨 Thumbnail</h3>
+      <div class="thumbnail-grid" id="thumbnailResults">
+        <div class="thumbnail-item">
+          <div class="loading">Generate to create thumbnails</div>
+        </div>
+      </div>
+      <div id="thumbnailPrompt"></div>
+    </div>
+
+    <!-- Description -->
+    <div class="card full">
+      <h3>📄 Description</h3>
+      <div class="description-box" id="descriptionResults">
+        Generate to see description template
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// STATE
+// ============================================================================
+const CHANNEL = {
+  name: "The Appiarist",
+  handle: "@thepawelk",
+  creator: "Paweł Karniej",
+  niche: "React Native indie hacker, app development, vibecoding, AI-powered apps",
+  style: "Honest, no-BS indie dev. Shows real revenue, real failures. Not a guru.",
+  links: {
+    twitter: "https://x.com/pawelkarniej",
+    website: "https://pawelkarniej.com",
+    boilerplate: "https://shipreactnative.com",
+  }
+};
+
+let photos = [null, null]; // base64 data URLs
+let currentPhotoIndex = 0;
+
+// ============================================================================
+// KEYS
+// ============================================================================
+function saveKeys() {
+  const rk = document.getElementById('replicateKey').value.trim();
+  const ok = document.getElementById('openaiKey').value.trim();
+  if (rk) localStorage.setItem('yt_replicate_key', rk);
+  if (ok) localStorage.setItem('yt_openai_key', ok);
+  const el = document.getElementById('keySaved');
+  el.style.display = 'inline';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+function getKey(name) {
+  return localStorage.getItem(`yt_${name}_key`) || '';
+}
+
+// Load keys on start
+window.addEventListener('DOMContentLoaded', () => {
+  const rk = getKey('replicate');
+  const ok = getKey('openai');
+  if (rk) document.getElementById('replicateKey').value = rk;
+  if (ok) document.getElementById('openaiKey').value = ok;
+
+  // Load saved photos
+  for (let i = 0; i < 2; i++) {
+    const saved = localStorage.getItem(`yt_photo_${i}`);
+    if (saved) {
+      photos[i] = saved;
+      renderPhoto(i);
+    }
+  }
+});
+
+// ============================================================================
+// PHOTOS
+// ============================================================================
+function uploadPhoto(index) {
+  if (photos[index]) return; // Already has photo
+  currentPhotoIndex = index;
+  document.getElementById('photoInput').click();
+}
+
+document.getElementById('photoInput')?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    photos[currentPhotoIndex] = ev.target.result;
+    localStorage.setItem(`yt_photo_${currentPhotoIndex}`, ev.target.result);
+    renderPhoto(currentPhotoIndex);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+function renderPhoto(index) {
+  const el = document.getElementById(`photo${index + 1}`);
+  if (photos[index]) {
+    el.innerHTML = `<img src="${photos[index]}" /><button class="remove" onclick="event.stopPropagation();removePhoto(${index})">×</button>`;
+  } else {
+    el.innerHTML = '<span class="plus">+</span>';
+  }
+}
+
+function removePhoto(index) {
+  photos[index] = null;
+  localStorage.removeItem(`yt_photo_${index}`);
+  renderPhoto(index);
+}
+
+// ============================================================================
+// STYLE CHIPS
+// ============================================================================
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+
+function getSelectedStyle() {
+  return document.querySelector('.chip.active')?.dataset.style || 'bold-text';
+}
+
+// ============================================================================
+// OPENAI CALLS
+// ============================================================================
+async function callOpenAI(messages, temperature = 0.9) {
+  const key = getKey('openai');
+  if (!key) { alert('Please enter your OpenAI API key'); return null; }
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature,
+      max_tokens: 2000,
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI error: ${err}`);
+  }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ============================================================================
+// GENERATE TITLES
+// ============================================================================
+async function generateTitles() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { alert('Please enter a topic or transcript'); return; }
+
+  const el = document.getElementById('titleResults');
+  el.innerHTML = '<div><span class="spinner"></span> Generating titles...</div>';
+
+  try {
+    const result = await callOpenAI([
+      { role: 'system', content: `You are a YouTube title expert for "${CHANNEL.name}" (${CHANNEL.handle}), a ${CHANNEL.niche} channel.
+
+Rules for titles:
+- Max 60 characters (YouTube truncates longer)
+- Create curiosity gaps and emotional hooks
+- Use numbers when relevant ("$10K/mo", "3 months", "10 apps")
+- Avoid clickbait that doesn't deliver
+- Match the honest indie dev tone — not guru/hustle culture
+- Use power words: "actually", "real", "honest", "how I", "why I stopped"
+- Avoid: ALL CAPS entire title, excessive punctuation, "you won't believe"
+- Some can be provocative/contrarian
+
+Return exactly 10 titles, one per line, numbered 1-10. No quotes around them.` },
+      { role: 'user', content: `Generate 10 YouTube titles for this video:\n\n${topic}` }
+    ]);
+
+    const titles = result.split('\n').filter(l => l.trim()).map(l => l.replace(/^\d+[\.\)]\s*/, '').replace(/^["']|["']$/g, ''));
+    el.innerHTML = titles.map((t, i) =>
+      `<div class="title-item" onclick="copyText('${t.replace(/'/g, "\\'")}')">
+        <span class="num">${i + 1}</span>
+        <span class="text">${t}</span>
+        <span class="copy-icon">📋</span>
+      </div>`
+    ).join('');
+  } catch (err) {
+    el.innerHTML = `<div style="color:var(--accent)">${err.message}</div>`;
+  }
+}
+
+// ============================================================================
+// GENERATE DESCRIPTION
+// ============================================================================
+async function generateDescription() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { alert('Please enter a topic or transcript'); return; }
+
+  const el = document.getElementById('descriptionResults');
+  el.innerHTML = '<span class="spinner"></span> Generating description...';
+
+  try {
+    const result = await callOpenAI([
+      { role: 'system', content: `You are a YouTube description writer for "${CHANNEL.name}" (${CHANNEL.handle}), run by ${CHANNEL.creator}.
+
+Channel: ${CHANNEL.niche}
+
+Write a YouTube description with these sections:
+1. Hook (2-3 sentences summarizing the video, front-load keywords)
+2. Key takeaways (bullet points with timestamps placeholder like 0:00)
+3. Links section with these real links:
+   - Ship React Native: ${CHANNEL.links.boilerplate}
+   - Twitter: ${CHANNEL.links.twitter}
+   - Website: ${CHANNEL.links.website}
+4. Hashtags (5-8 relevant ones)
+
+Rules:
+- First 150 chars are crucial (shown in search results)
+- Include relevant keywords naturally
+- Keep it scannable
+- Honest tone, not salesy
+- No em dashes
+- Timestamps should be realistic placeholders (viewer fills in real times)` },
+      { role: 'user', content: `Write a YouTube description for this video:\n\n${topic}` }
+    ], 0.7);
+
+    el.innerHTML = result + `<button class="btn btn-ghost copy-btn" onclick="copyText(document.getElementById('descriptionResults').innerText)">Copy</button>`;
+  } catch (err) {
+    el.innerHTML = `<div style="color:var(--accent)">${err.message}</div>`;
+  }
+}
+
+// ============================================================================
+// GENERATE THUMBNAIL
+// ============================================================================
+async function generateThumbnail() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { alert('Please enter a topic or transcript'); return; }
+
+  const key = getKey('replicate');
+  if (!key) { alert('Please enter your Replicate API key'); return; }
+
+  const el = document.getElementById('thumbnailResults');
+  const promptEl = document.getElementById('thumbnailPrompt');
+  el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating thumbnail...</div></div>';
+
+  const style = getSelectedStyle();
+
+  // First, use OpenAI to create a good image prompt
+  const promptResult = await callOpenAI([
+    { role: 'system', content: `You create image generation prompts for YouTube thumbnails. The channel is about React Native, indie hacking, and app development by a Polish developer.
+
+Style: "${style}"
+
+Rules for YouTube thumbnails:
+- 1280x720 resolution (16:9)
+- Bold, high contrast, readable at small sizes
+- Max 3-5 words of text on the thumbnail (big, bold)
+- Bright/saturated colors that pop against YouTube's white UI
+- For "bold-text" style: dramatic lighting, person's reaction, large text overlay
+- For "screenshot" style: clean app UI mockup with subtle glow
+- For "minimal" style: single object/icon, lots of negative space, 1-2 words
+- For "cinematic" style: dramatic lighting, shallow depth of field
+- For "before-after" style: split screen comparison
+- For "meme" style: funny expression, relatable situation
+
+Output ONLY the image generation prompt, nothing else. Make it detailed and specific for FLUX model. Do NOT include any text-on-image instructions (FLUX can't render text well). Focus on the visual scene/background.` },
+    { role: 'user', content: `Create a thumbnail image prompt for: ${topic.substring(0, 500)}` }
+  ], 0.8);
+
+  promptEl.innerHTML = `<div class="prompt-preview">Prompt: ${promptResult}</div>`;
+
+  try {
+    // Call Replicate FLUX
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: 'black-forest-labs/flux-1.1-pro',
+        input: {
+          prompt: promptResult,
+          aspect_ratio: '16:9',
+          output_format: 'jpg',
+          output_quality: 90,
+          safety_tolerance: 5,
+          prompt_upsampling: true,
+        }
+      })
+    });
+
+    if (!createRes.ok) {
+      throw new Error(`Replicate error: ${await createRes.text()}`);
+    }
+
+    const prediction = await createRes.json();
+
+    // Poll for result
+    let result = prediction;
+    while (result.status === 'starting' || result.status === 'processing') {
+      await new Promise(r => setTimeout(r, 2000));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
+        headers: { 'Authorization': `Bearer ${key}` }
+      });
+      result = await pollRes.json();
+      el.innerHTML = `<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> ${result.status}...</div></div>`;
+    }
+
+    if (result.status === 'succeeded' && result.output) {
+      const imgUrl = typeof result.output === 'string' ? result.output : result.output[0] || result.output;
+      el.innerHTML = `
+        <div class="thumbnail-item">
+          <img src="${imgUrl}" alt="Generated thumbnail" />
+        </div>
+        <div class="thumbnail-actions">
+          <a href="${imgUrl}" download="thumbnail.jpg" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Download</a>
+          <button class="btn btn-ghost" style="font-size:12px;" onclick="generateThumbnail()">Regenerate</button>
+        </div>`;
+    } else {
+      throw new Error(`Generation failed: ${result.error || result.status}`);
+    }
+  } catch (err) {
+    el.innerHTML = `<div class="thumbnail-item"><div class="loading" style="color:var(--accent)">${err.message}</div></div>`;
+  }
+}
+
+// ============================================================================
+// GENERATE ALL
+// ============================================================================
+async function generateAll() {
+  const btn = document.getElementById('generateAll');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+  try {
+    await Promise.all([
+      generateTitles(),
+      generateDescription(),
+      generateThumbnail(),
+    ]);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Generate All';
+  }
+}
+
+// ============================================================================
+// UTILS
+// ============================================================================
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard');
+  });
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
+}
+</script>
+</body>
+</html>
