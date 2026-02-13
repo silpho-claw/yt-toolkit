@@ -259,14 +259,18 @@
   </div>
   <p style="color:var(--text2);font-size:11px;margin-top:-24px;margin-bottom:24px;">Thumbnails use Gemini 2.5 Flash Image (nano-banana). Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a></p>
 
-  <!-- Face Photo -->
+  <!-- Photos -->
   <div class="photos">
-    <label>Your face photo:</label>
+    <label>Your face:</label>
     <div class="photo-slot" id="photo1" onclick="uploadPhoto(0)">
       <span class="plus">+</span>
     </div>
+    <label style="margin-left:12px;">Video frame:</label>
+    <div class="photo-slot" id="photo2" onclick="uploadPhoto(1)">
+      <span class="plus">+</span>
+    </div>
     <input type="file" id="photoInput" accept="image/*" style="display:none" />
-    <span style="color:var(--text2);font-size:12px">Upload a photo of yourself — used inside generated thumbnails</span>
+    <span style="color:var(--text2);font-size:12px">Face photo = used in thumbnail. Video frame = optional context for mood/style.</span>
   </div>
 
   <!-- Input -->
@@ -460,7 +464,7 @@ function toggleBioEditor() {
 // ============================================================================
 // STATE
 // ============================================================================
-let photos = [null];
+let photos = [null, null];
 let currentPhotoIndex = 0;
 
 // ============================================================================
@@ -482,23 +486,25 @@ function getKey(name) {
 
 // Gemini 2.5 Flash Image (nano-banana) for thumbnail generation
 // Supports optional input image (face photo) that gets incorporated
-async function callGeminiImage(prompt, inputImageBase64 = null) {
+async function callGeminiImage(prompt, inputImageBase64 = null, secondImageBase64 = null) {
   const key = getKey('gemini');
   if (!key) { alert('Please enter your Google Gemini API key'); return null; }
 
   const parts = [];
 
-  // Add face photo as input if provided
+  // Add face photo as input
   if (inputImageBase64) {
-    // Extract base64 data and mime type from data URL
     const match = inputImageBase64.match(/^data:([^;]+);base64,(.+)$/);
     if (match) {
-      parts.push({
-        inlineData: {
-          mimeType: match[1],
-          data: match[2]
-        }
-      });
+      parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+    }
+  }
+
+  // Add video frame as second reference image
+  if (secondImageBase64) {
+    const match2 = secondImageBase64.match(/^data:([^;]+);base64,(.+)$/);
+    if (match2) {
+      parts.push({ inlineData: { mimeType: match2[1], data: match2[2] } });
     }
   }
 
@@ -537,8 +543,10 @@ window.addEventListener('DOMContentLoaded', () => {
   if (ok) document.getElementById('openaiKey').value = ok;
   if (gk) document.getElementById('geminiKey').value = gk;
 
-  const savedPhoto = localStorage.getItem('yt_photo_0');
-  if (savedPhoto) { photos[0] = savedPhoto; renderPhoto(0); }
+  for (let i = 0; i < 2; i++) {
+    const saved = localStorage.getItem(`yt_photo_${i}`);
+    if (saved) { photos[i] = saved; renderPhoto(i); }
+  }
 
   const savedBio = localStorage.getItem('yt_channel_bio');
   if (savedBio) {
@@ -860,13 +868,19 @@ async function generateThumbnail() {
       'ranking-list': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Person on the right third, chest up, background removed. Replace background with solid dark green (#0A2E1A). Left two-thirds: a clean numbered list (1. 2. 3. 4.) with simple white icons, like a leaderboard. "${thumbText}" as a header at the top in ${textStyleDesc}.`
     };
 
-    const geminiPrompt = `${styleInstructions[style] || styleInstructions['face-left-text-right']}
+    let geminiPrompt = `${styleInstructions[style] || styleInstructions['face-left-text-right']}
 
 Important: Output must be 16:9 landscape. Preserve the person's face exactly. Do NOT keep the original background — replace it completely as described. All text "${thumbText}" must be fully visible. No extra text.`;
 
-    promptEl.innerHTML = `<div class="prompt-preview">Text: ${thumbText} | Style: ${style}</div>`;
+    // Add video frame context to prompt if uploaded
+    const frameData = photos[1];
+    if (frameData) {
+      geminiPrompt += `\n\nA reference frame from the actual video is also provided. Use it to match the mood, lighting, and color tone of the video — but do NOT copy its layout. The thumbnail should feel like it belongs to this video.`;
+    }
 
-    const imgDataUrl = await callGeminiImage(geminiPrompt, faceData);
+    promptEl.innerHTML = `<div class="prompt-preview">Text: ${thumbText} | Style: ${style}${frameData ? ' | + video frame' : ''}</div>`;
+
+    const imgDataUrl = await callGeminiImage(geminiPrompt, faceData, frameData);
 
     el.innerHTML = `
       <div class="thumbnail-item">
