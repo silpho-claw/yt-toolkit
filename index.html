@@ -260,18 +260,23 @@
   <p style="color:var(--text2);font-size:11px;margin-top:-24px;margin-bottom:24px;">Thumbnails use Gemini 2.5 Flash Image (nano-banana). Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a></p>
 
   <!-- Photos -->
-  <div class="photos">
-    <label>Your face:</label>
-    <div class="photo-slot" id="photo1" onclick="uploadPhoto(0)">
-      <span class="plus">+</span>
+  <div class="photos" style="flex-wrap:wrap;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="photo-slot" id="photo1" onclick="uploadPhoto(0)"><span class="plus">+</span></div>
+      <span style="color:var(--text2);font-size:11px;">Your face</span>
     </div>
-    <label style="margin-left:12px;">Video frame:</label>
-    <div class="photo-slot" id="photo2" onclick="uploadPhoto(1)">
-      <span class="plus">+</span>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="photo-slot" id="photo2" onclick="uploadPhoto(1)"><span class="plus">+</span></div>
+      <span style="color:var(--text2);font-size:11px;">Video frame</span>
+    </div>
+    <div id="extraPhotosContainer" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="photo-slot" onclick="addExtraPhoto()" style="border-style:dotted;"><span class="plus" style="font-size:18px;">+</span></div>
+      <span style="color:var(--text2);font-size:11px;">Add image</span>
     </div>
     <input type="file" id="photoInput" accept="image/*" style="display:none" />
-    <span style="color:var(--text2);font-size:12px">Face photo = used in thumbnail. Video frame = optional context for mood/style.</span>
   </div>
+  <p style="color:var(--text2);font-size:11px;margin-top:-20px;margin-bottom:24px;">Extra images (logos, screenshots, icons) get sent to Gemini to include in the thumbnail.</p>
 
   <!-- Input -->
   <div class="input-section">
@@ -465,6 +470,7 @@ function toggleBioEditor() {
 // STATE
 // ============================================================================
 let photos = [null, null];
+let extraPhotos = []; // additional images (logos, screenshots, icons)
 let currentPhotoIndex = 0;
 
 // ============================================================================
@@ -486,27 +492,20 @@ function getKey(name) {
 
 // Gemini 2.5 Flash Image (nano-banana) for thumbnail generation
 // Supports optional input image (face photo) that gets incorporated
-async function callGeminiImage(prompt, inputImageBase64 = null, secondImageBase64 = null) {
+async function callGeminiImage(prompt, inputImageBase64 = null, secondImageBase64 = null, additionalImages = []) {
   const key = getKey('gemini');
   if (!key) { alert('Please enter your Google Gemini API key'); return null; }
 
   const parts = [];
 
-  // Add face photo as input
-  if (inputImageBase64) {
-    const match = inputImageBase64.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) {
-      parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
-    }
+  function addImage(dataUrl) {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
   }
 
-  // Add video frame as second reference image
-  if (secondImageBase64) {
-    const match2 = secondImageBase64.match(/^data:([^;]+);base64,(.+)$/);
-    if (match2) {
-      parts.push({ inlineData: { mimeType: match2[1], data: match2[2] } });
-    }
-  }
+  if (inputImageBase64) addImage(inputImageBase64);
+  if (secondImageBase64) addImage(secondImageBase64);
+  additionalImages.forEach(img => addImage(img));
 
   parts.push({ text: prompt });
 
@@ -569,7 +568,6 @@ document.getElementById('photoInput')?.addEventListener('change', (e) => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    // Resize to max 800px to avoid localStorage quota
     const img = new Image();
     img.onload = () => {
       const MAX = 800;
@@ -582,9 +580,15 @@ document.getElementById('photoInput')?.addEventListener('change', (e) => {
       c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       const compressed = c.toDataURL('image/jpeg', 0.7);
-      photos[currentPhotoIndex] = compressed;
-      try { localStorage.setItem(`yt_photo_${currentPhotoIndex}`, compressed); } catch(e) {}
-      renderPhoto(currentPhotoIndex);
+      if (currentPhotoIndex === -1) {
+        // Extra photo
+        extraPhotos.push(compressed);
+        renderExtraPhotos();
+      } else {
+        photos[currentPhotoIndex] = compressed;
+        try { localStorage.setItem(`yt_photo_${currentPhotoIndex}`, compressed); } catch(e) {}
+        renderPhoto(currentPhotoIndex);
+      }
     };
     img.src = ev.target.result;
   };
@@ -605,6 +609,29 @@ function removePhoto(index) {
   photos[index] = null;
   localStorage.removeItem(`yt_photo_${index}`);
   renderPhoto(index);
+}
+
+function addExtraPhoto() {
+  currentPhotoIndex = -1; // signal for extra photo
+  document.getElementById('photoInput').click();
+}
+
+function renderExtraPhotos() {
+  const container = document.getElementById('extraPhotosContainer');
+  container.innerHTML = extraPhotos.map((data, i) =>
+    `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="photo-slot" style="position:relative;">
+        <img src="${data}" style="width:100%;height:100%;object-fit:cover;" />
+        <button class="remove" onclick="event.stopPropagation();removeExtraPhoto(${i})">×</button>
+      </div>
+      <span style="color:var(--text2);font-size:11px;">Extra ${i+1}</span>
+    </div>`
+  ).join('');
+}
+
+function removeExtraPhoto(index) {
+  extraPhotos.splice(index, 1);
+  renderExtraPhotos();
 }
 
 // ============================================================================
@@ -889,15 +916,20 @@ async function generateThumbnail() {
 
 Important: Output must be 16:9 landscape. Preserve the person's face exactly. Do NOT keep the original background — replace it completely as described. All text "${thumbText}" must be fully visible. No extra text.`;
 
-    // Add video frame context to prompt if uploaded
+    // Add video frame context if uploaded
     const frameData = photos[1];
     if (frameData) {
-      geminiPrompt += `\n\nA reference frame from the actual video is also provided. Use it to match the mood, lighting, and color tone of the video — but do NOT copy its layout. The thumbnail should feel like it belongs to this video.`;
+      geminiPrompt += `\n\nA reference frame from the actual video is also provided. Use it to match the mood, lighting, and color tone — but do NOT copy its layout.`;
     }
 
-    promptEl.innerHTML = `<div class="prompt-preview">Text: ${thumbText} | Style: ${style}${frameData ? ' | + video frame' : ''}</div>`;
+    // Add extra images context
+    if (extraPhotos.length > 0) {
+      geminiPrompt += `\n\n${extraPhotos.length} additional image(s) are provided (logos, screenshots, icons, etc.). Incorporate them naturally into the thumbnail — place them visibly alongside the text and person. They are important visual elements for this thumbnail.`;
+    }
 
-    const imgDataUrl = await callGeminiImage(geminiPrompt, faceData, frameData);
+    promptEl.innerHTML = `<div class="prompt-preview">Text: ${thumbText} | Style: ${style}${frameData ? ' | + frame' : ''}${extraPhotos.length ? ` | + ${extraPhotos.length} extra` : ''}</div>`;
+
+    const imgDataUrl = await callGeminiImage(geminiPrompt, faceData, frameData, extraPhotos);
 
     el.innerHTML = `
       <div class="thumbnail-item">
