@@ -711,47 +711,132 @@ async function generateThumbnail() {
   const style = getSelectedStyle();
 
   try {
-    // Step 1: Generate image prompt via GPT
-    const imagePrompt = await callOpenAI([
-      { role: 'system', content: `You create image generation prompts for YouTube thumbnails. The channel is about React Native indie hacking and app development.
+    // Step 1: Generate thumbnail text (2-4 punchy words)
+    el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Creating thumbnail concept...</div></div>';
 
-Style requested: "${style}"
+    const thumbTextResult = await callOpenAI([
+      { role: 'system', content: `You write thumbnail text for YouTube videos. Output ONLY 2-4 punchy words that create curiosity. These get overlaid as big bold text on a thumbnail.
 
-THUMBNAIL RULES:
-- 16:9 aspect ratio, 1280x720 feel
-- Bold, high contrast, must read at tiny sizes
-- Saturated colors that pop against YouTube's white UI
-- For "bold-text": dramatic lighting, person at desk/screen, big bold 2-4 word text overlay
-- For "screenshot": clean app UI mockup with device, subtle glow
-- For "minimal": single object/icon, negative space, clean, 1-2 big words
-- For "cinematic": dramatic lighting, shallow DOF, moody
-- For "before-after": split screen comparison, left=messy right=clean
-- For "meme": expressive face/reaction, relatable dev moment
+Rules:
+- MAX 4 words. Ideally 2-3.
+- Create tension, curiosity, or emotion
+- Use contrast: "$0 → $10K", "BROKE IT", "IT WORKS", "never again"
+- All caps or mixed case — whatever hits harder
+- NO full sentences. NO clickbait like "YOU WON'T BELIEVE"
 
-IMPORTANT:
-- Gemini CAN render text well. Include 2-4 words of bold text on the image if appropriate.
-- Use warm/hot colors (reds, oranges, yellows) — best YouTube CTR
-- Include human element when possible (hands typing, face, desk setup)
-- Make it DRAMATIC. Boring thumbnails don't get clicked.
-- Think "thumbnail that stops the scroll"
+Good: "I MASS I SHIPPED IT", "$0 REVENUE", "IT'S DEAD", "SOLD MY APP", "AI CODES NOW"
+Bad: "How To Build Apps Faster" (too long, boring)
 
-Output ONLY the image prompt. 2-3 detailed sentences. No explanation.` },
-      { role: 'user', content: `Create a thumbnail prompt for: ${topic.substring(0, 500)}` }
+Return ONLY the text. Nothing else.` },
+      { role: 'user', content: topic.substring(0, 300) }
+    ], 1.0);
+
+    const thumbText = thumbTextResult.trim().replace(/^["']|["']$/g, '');
+
+    // Step 2: Generate clean background with Gemini
+    const bgPrompt = await callOpenAI([
+      { role: 'system', content: `You create image prompts for YouTube thumbnail BACKGROUNDS. The creator will composite their face photo on top, so DO NOT include any people, faces, or hands.
+
+Style: "${style}"
+
+RULES:
+- Clean, simple background that supports the topic
+- NO people, NO faces, NO hands, NO text
+- Bold colors, high contrast, slightly blurred/gradient feel
+- Think: solid gradients, abstract shapes, subtle code/tech elements, neon accents
+- Dark backgrounds work best (the face photo and white text go on top)
+- For "minimal": solid dark gradient with subtle accent color
+- For "cinematic": moody dark with light rays or bokeh
+- For "screenshot": dark desk/workspace setting, no person
+- For "before-after": split background, dark left / bright right
+- For "bold-text": dramatic gradient or abstract pattern
+- For "meme": bright/chaotic background, emojis or icons floating
+- Keep it SIMPLE. The face and text are the stars, not the background.
+
+Output ONLY the prompt. 1-2 sentences. No explanation.` },
+      { role: 'user', content: `Background for a video about: ${topic.substring(0, 300)}` }
     ], 0.8);
 
-    promptEl.innerHTML = `<div class="prompt-preview">Prompt: ${imagePrompt}</div>`;
+    promptEl.innerHTML = `<div class="prompt-preview">BG: ${bgPrompt}<br/>Text: ${thumbText}</div>`;
 
-    // Step 2: Generate with Gemini nano-banana
-    el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating with Gemini nano-banana...</div></div>';
+    el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating background with nano-banana...</div></div>';
 
-    const imgDataUrl = await callGeminiImage(imagePrompt);
+    const bgDataUrl = await callGeminiImage(bgPrompt);
+
+    // Step 3: Composite face + background + text in canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext('2d');
+
+    // Draw background
+    const bgImg = new Image();
+    bgImg.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+      bgImg.onload = resolve;
+      bgImg.onerror = reject;
+      bgImg.src = bgDataUrl;
+    });
+    ctx.drawImage(bgImg, 0, 0, 1280, 720);
+
+    // Draw face photo (if uploaded) on the left side
+    const faceData = photos[0] || photos[1];
+    if (faceData) {
+      const faceImg = new Image();
+      await new Promise((resolve, reject) => {
+        faceImg.onload = resolve;
+        faceImg.onerror = reject;
+        faceImg.src = faceData;
+      });
+      // Position face on left ~40% of frame, bottom-aligned
+      const faceH = 720;
+      const faceW = (faceImg.width / faceImg.height) * faceH;
+      const faceX = -faceW * 0.1; // slightly off-left
+      ctx.drawImage(faceImg, faceX, 0, faceW, faceH);
+    }
+
+    // Draw text overlay — right side, big bold white with black stroke
+    if (thumbText) {
+      const lines = thumbText.length > 12 ? thumbText.split(/\s+/).reduce((acc, word) => {
+        const last = acc[acc.length - 1];
+        if (last && (last + ' ' + word).length <= 14) {
+          acc[acc.length - 1] = last + ' ' + word;
+        } else {
+          acc.push(word);
+        }
+        return acc;
+      }, []) : [thumbText];
+
+      const fontSize = lines.length > 2 ? 80 : lines.length > 1 ? 100 : 120;
+      ctx.font = `900 ${fontSize}px "Space Grotesk", "Arial Black", Impact, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+
+      const textX = 1230;
+      const totalH = lines.length * (fontSize * 1.15);
+      const startY = (720 - totalH) / 2 + fontSize / 2;
+
+      lines.forEach((line, i) => {
+        const y = startY + i * (fontSize * 1.15);
+        // Black stroke
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = fontSize * 0.12;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(line, textX, y);
+        // White fill
+        ctx.fillStyle = '#fff';
+        ctx.fillText(line, textX, y);
+      });
+    }
+
+    const finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
     el.innerHTML = `
       <div class="thumbnail-item">
-        <img src="${imgDataUrl}" alt="Generated thumbnail" />
+        <img src="${finalDataUrl}" alt="Generated thumbnail" />
       </div>
       <div class="thumbnail-actions">
-        <a href="${imgDataUrl}" download="thumbnail.png" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Download</a>
+        <a href="${finalDataUrl}" download="thumbnail.jpg" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Download</a>
         <button class="btn btn-ghost" style="font-size:12px;" onclick="generateThumbnail()">Regenerate</button>
       </div>`;
   } catch (err) {
