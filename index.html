@@ -277,8 +277,9 @@
 
   <!-- Thumbnail controls -->
   <div class="input-section">
-    <label>Thumbnail Text (what appears on the thumbnail)</label>
-    <input type="text" id="thumbTextInput" placeholder='e.g. "CLOUD BOT MAGIC!" or "I SHIPPED IT" — leave empty for AI to suggest' style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:10px;font-size:15px;font-family:'Space Grotesk',sans-serif;font-weight:700;" />
+    <label>Thumbnail Text <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;margin-left:8px;" onclick="suggestThumbTexts()">✨ Suggest from topic</button></label>
+    <input type="text" id="thumbTextInput" placeholder='e.g. "CLOUD BOT MAGIC!" or "I SHIPPED IT"' style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:10px;font-size:15px;font-family:'Space Grotesk',sans-serif;font-weight:700;" />
+    <div id="thumbTextSuggestions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
   </div>
 
   <div class="input-section">
@@ -584,6 +585,36 @@ async function callOpenAI(messages, temperature = 0.9, max_tokens = 2000) {
 }
 
 // ============================================================================
+// SUGGEST THUMBNAIL TEXT
+// ============================================================================
+async function suggestThumbTexts() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { alert('Enter a topic first'); return; }
+
+  const el = document.getElementById('thumbTextSuggestions');
+  el.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const result = await callOpenAI([
+      { role: 'system', content: `Generate 5 thumbnail text options for a YouTube video. Each should be 2-4 punchy words, ALL CAPS, that create curiosity or tension on a thumbnail.
+
+Good: "SHIPPED IT", "AI CODES NOW", "$0 REVENUE", "CLOUD BOT MAGIC!", "IT'S DEAD", "NEVER AGAIN"
+Bad: "How To Build Apps" (too generic, too long)
+
+Return exactly 5 options, one per line, numbered 1-5. Nothing else.` },
+      { role: 'user', content: topic.substring(0, 300) }
+    ], 1.0);
+
+    const options = result.split('\n').filter(l => l.trim()).map(l => l.replace(/^\d+[\.\)]\s*/, '').replace(/^["']|["']$/g, '').trim());
+    el.innerHTML = options.map(t =>
+      `<div class="chip" onclick="document.getElementById('thumbTextInput').value='${t.replace(/'/g, "\\'")}';document.querySelectorAll('#thumbTextSuggestions .chip').forEach(c=>c.classList.remove('active'));this.classList.add('active')" style="cursor:pointer;font-weight:600;">${t}</div>`
+    ).join('');
+  } catch (err) {
+    el.innerHTML = `<span style="color:var(--accent);font-size:12px">${err.message}</span>`;
+  }
+}
+
+// ============================================================================
 // GENERATE TITLES
 // ============================================================================
 async function generateTitles() {
@@ -731,14 +762,9 @@ async function generateThumbnail() {
   let thumbText = document.getElementById('thumbTextInput').value.trim();
 
   try {
-    // If no custom text, ask GPT for a suggestion
     if (!thumbText) {
-      const thumbTextResult = await callOpenAI([
-        { role: 'system', content: `Write 2-4 punchy words for a YouTube thumbnail. ALL CAPS. Create curiosity or tension. Examples: "SHIPPED IT", "AI CODES NOW", "$0 REVENUE", "CLOUD BOT MAGIC". Return ONLY the text.` },
-        { role: 'user', content: topic.substring(0, 300) }
-      ], 1.0);
-      thumbText = thumbTextResult.trim().replace(/^["']|["']$/g, '');
-      document.getElementById('thumbTextInput').value = thumbText;
+      alert('Enter thumbnail text or click "✨ Suggest from topic" first');
+      return;
     }
 
     // Build the Gemini prompt — send face photo + describe the thumbnail
