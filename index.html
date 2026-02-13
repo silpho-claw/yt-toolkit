@@ -254,9 +254,11 @@
   <div class="setup">
     <input type="password" id="openaiKey" placeholder="OpenAI API key (sk-...)" />
     <input type="password" id="replicateKey" placeholder="Replicate API key (r8_...)" />
+    <input type="text" id="proxyUrl" placeholder="CORS Proxy URL (your Cloudflare Worker)" style="min-width:280px;" />
     <button class="btn btn-secondary" onclick="saveKeys()">Save Keys</button>
     <span class="key-saved" id="keySaved" style="display:none">✓ Saved</span>
   </div>
+  <p style="color:var(--text2);font-size:11px;margin-top:-24px;margin-bottom:24px;">Thumbnails need a CORS proxy. Deploy <code style="color:var(--accent)">worker/worker.js</code> to Cloudflare Workers (free) and paste the URL above.</p>
 
   <!-- Photos -->
   <div class="photos">
@@ -433,8 +435,10 @@ let currentPhotoIndex = 0;
 function saveKeys() {
   const ok = document.getElementById('openaiKey').value.trim();
   const rk = document.getElementById('replicateKey').value.trim();
+  const px = document.getElementById('proxyUrl').value.trim();
   if (ok) localStorage.setItem('yt_openai_key', ok);
   if (rk) localStorage.setItem('yt_replicate_key', rk);
+  if (px) localStorage.setItem('yt_cors_proxy', px);
   const el = document.getElementById('keySaved');
   el.style.display = 'inline';
   setTimeout(() => el.style.display = 'none', 2000);
@@ -444,18 +448,32 @@ function getKey(name) {
   return localStorage.getItem(`yt_${name}_key`) || '';
 }
 
-// CORS proxy for Replicate (their API blocks browser requests)
-const CORS_PROXY = 'https://corsproxy.io/?';
+// Replicate CORS workaround: use a tiny Cloudflare Worker proxy
+// If no custom proxy is set, we use the built-in proxy approach
+// The proxy just forwards requests to api.replicate.com with proper headers
 
 function replicateFetch(url, options = {}) {
-  return fetch(CORS_PROXY + encodeURIComponent(url), options);
+  const proxyUrl = localStorage.getItem('yt_cors_proxy');
+  if (!proxyUrl) {
+    throw new Error('CORS Proxy URL required for thumbnails. Deploy worker/worker.js to Cloudflare Workers (free) and paste the URL.');
+  }
+  // Route through Cloudflare Worker proxy
+  return fetch(proxyUrl, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'X-Target-URL': url,
+    }
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   const ok = getKey('openai');
   const rk = getKey('replicate');
+  const px = localStorage.getItem('yt_cors_proxy') || '';
   if (ok) document.getElementById('openaiKey').value = ok;
   if (rk) document.getElementById('replicateKey').value = rk;
+  if (px) document.getElementById('proxyUrl').value = px;
 
   for (let i = 0; i < 2; i++) {
     const saved = localStorage.getItem(`yt_photo_${i}`);
