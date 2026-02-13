@@ -32,7 +32,6 @@
 
   h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
 
-  /* Layout */
   .app { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
   .header {
@@ -44,7 +43,6 @@
   .header span { color: var(--text2); font-size: 14px; }
   .header .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 
-  /* Setup bar */
   .setup {
     display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap;
   }
@@ -57,7 +55,6 @@
   .setup input::placeholder { color: var(--text2); }
   .setup .key-saved { color: var(--green); font-size: 12px; align-self: center; }
 
-  /* Photo upload */
   .photos {
     display: flex; gap: 12px; margin-bottom: 32px; align-items: center;
   }
@@ -79,7 +76,6 @@
   }
   .photos label { color: var(--text2); font-size: 13px; }
 
-  /* Main input */
   .input-section { margin-bottom: 32px; }
   .input-section label {
     display: block; margin-bottom: 8px; font-weight: 600;
@@ -95,7 +91,6 @@
   textarea::placeholder { color: var(--text2); }
   textarea:focus { outline: none; border-color: var(--accent); }
 
-  /* Generate button */
   .generate-row { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
   .btn {
     padding: 12px 24px; border-radius: 10px; border: none;
@@ -111,7 +106,6 @@
   .btn-ghost { background: transparent; color: var(--text2); }
   .btn-ghost:hover { color: var(--text); }
 
-  /* Results grid */
   .results { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   @media (max-width: 768px) { .results { grid-template-columns: 1fr; } }
 
@@ -124,7 +118,6 @@
     text-transform: uppercase; letter-spacing: 0.5px;
   }
 
-  /* Thumbnail result */
   .thumbnail-grid { display: flex; flex-direction: column; gap: 16px; }
   .thumbnail-item {
     border-radius: 12px; overflow: hidden; position: relative;
@@ -139,7 +132,6 @@
     display: flex; gap: 8px; margin-top: 8px;
   }
 
-  /* Titles */
   .title-list { display: flex; flex-direction: column; gap: 8px; }
   .title-item {
     display: flex; align-items: center; gap: 12px;
@@ -154,7 +146,6 @@
   .title-item .text { font-size: 14px; flex: 1; line-height: 1.4; }
   .title-item .copy-icon { color: var(--text2); font-size: 12px; }
 
-  /* Description */
   .description-box {
     background: var(--surface2); border-radius: 10px;
     padding: 16px; font-size: 13px; line-height: 1.7;
@@ -165,14 +156,12 @@
     position: absolute; top: 8px; right: 8px;
   }
 
-  /* Prompt used */
   .prompt-preview {
     margin-top: 12px; padding: 12px; background: var(--surface2);
     border-radius: 8px; font-size: 11px; color: var(--text2);
     max-height: 100px; overflow-y: auto; white-space: pre-wrap;
   }
 
-  /* Spinner */
   .spinner {
     display: inline-block; width: 16px; height: 16px;
     border: 2px solid var(--border); border-top-color: var(--accent);
@@ -181,7 +170,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Toast */
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     background: var(--surface2); color: var(--green); padding: 10px 20px;
@@ -194,10 +182,8 @@
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 
-  /* Full width card */
   .card.full { grid-column: 1 / -1; }
 
-  /* Style selector */
   .style-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .chip {
     padding: 6px 14px; border-radius: 20px; font-size: 12px;
@@ -206,6 +192,32 @@
   }
   .chip.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
   .chip:hover { border-color: var(--text2); }
+
+  /* Channel info panel */
+  .channel-info {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 32px;
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  }
+  .channel-info .avatar {
+    width: 48px; height: 48px; border-radius: 50%; background: var(--accent-glow);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    flex-shrink: 0;
+  }
+  .channel-info .meta { flex: 1; min-width: 200px; }
+  .channel-info .meta h4 { font-size: 15px; margin-bottom: 2px; }
+  .channel-info .meta p { color: var(--text2); font-size: 12px; line-height: 1.5; }
+  .channel-info .edit-btn { align-self: flex-start; }
+
+  /* Editable channel bio */
+  .bio-editor {
+    width: 100%; min-height: 80px; background: var(--surface2);
+    border: 1px solid var(--border); color: var(--text);
+    padding: 12px; border-radius: 8px; font-size: 12px;
+    font-family: 'DM Sans', sans-serif; resize: vertical;
+    line-height: 1.5; display: none;
+  }
+  .bio-editor.show { display: block; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -227,11 +239,21 @@
     <span>The Appiarist — @thepawelk</span>
   </div>
 
+  <!-- Channel Info -->
+  <div class="channel-info">
+    <div class="avatar">🐝</div>
+    <div class="meta">
+      <h4>The Appiarist — @thepawelk</h4>
+      <p id="channelBioPreview">React Native indie hacker building a hive of apps. Self-taught dev since 2017. Built and shipped 12+ apps (sold 2 on Flippa). Based in Poland. Building in public — real revenue, real failures, no guru BS.</p>
+    </div>
+    <button class="btn btn-ghost edit-btn" onclick="toggleBioEditor()">Edit Bio</button>
+  </div>
+  <textarea class="bio-editor" id="bioEditor" placeholder="Edit your channel bio / about section. This context is used to write better descriptions."></textarea>
+
   <!-- API Keys -->
   <div class="setup">
-    <input type="password" id="replicateKey" placeholder="Replicate API key (r8_...)" />
     <input type="password" id="openaiKey" placeholder="OpenAI API key (sk-...)" />
-    <button class="btn btn-secondary" onclick="saveKeys()">Save Keys</button>
+    <button class="btn btn-secondary" onclick="saveKeys()">Save Key</button>
     <span class="key-saved" id="keySaved" style="display:none">✓ Saved</span>
   </div>
 
@@ -251,7 +273,7 @@
   <!-- Input -->
   <div class="input-section">
     <label>Video Topic / Transcript / Summary</label>
-    <textarea id="topicInput" placeholder="Paste your video transcript, topic description, or a brief summary...&#10;&#10;Example: 'Building a $10K/mo app with React Native and AI — how I went from zero to revenue in 3 months using vibecoding'"></textarea>
+    <textarea id="topicInput" placeholder="Paste your video transcript, topic description, or a brief summary of what the video is about..."></textarea>
   </div>
 
   <!-- Thumbnail style -->
@@ -300,7 +322,7 @@
     <div class="card full">
       <h3>📄 Description</h3>
       <div class="description-box" id="descriptionResults">
-        Generate to see description template
+        Generate to see description
       </div>
     </div>
   </div>
@@ -310,13 +332,6 @@
 // ============================================================================
 // AUTH
 // ============================================================================
-const PASS_HASH = '8f14e45fceea167a5a36dedd4bea2543'; // md5 of theappiarist321
-
-function md5(s){/* simple hash - we just compare a known value */
-  // Using a basic check since this is just a soft gate
-  return s;
-}
-
 function checkPass() {
   const input = document.getElementById('passInput').value;
   if (input === 'theappiarist321') {
@@ -336,37 +351,86 @@ function showApp() {
   document.getElementById('mainApp').style.display = 'block';
 }
 
-// Auto-login if already authed this session
 if (sessionStorage.getItem('yt_auth') === '1') {
   window.addEventListener('DOMContentLoaded', showApp);
 }
 
 // ============================================================================
-// STATE
+// CHANNEL CONTEXT
 // ============================================================================
 const CHANNEL = {
   name: "The Appiarist",
   handle: "@thepawelk",
   creator: "Paweł Karniej",
-  niche: "React Native indie hacker, app development, vibecoding, AI-powered apps",
-  style: "Honest, no-BS indie dev. Shows real revenue, real failures. Not a guru.",
+  tagline: "Building a hive of apps",
+  bio: `I'm building a hive of apps — small projects, experiments, and products that compound over time.
+
+Self-taught React Native developer since 2017. Based in Białystok, Poland. I've built and shipped 12+ apps to the App Store — sold 2 on Flippa, retired 2, and keep building new ones.
+
+Current projects:
+• ShipReactNative — React Native boilerplate with AI, payments, auth ($199)
+• Splonk — macOS app for recording & editing app demos
+• GhostCommand — voice-to-command macOS menu bar app
+• Newsletterytics — newsletter analytics for Beehiiv & Mailchimp
+• YapperX — voice memos → tweets in your tone
+• Voxdrop — AI-powered streamer donations (songs + voice drops)
+
+My approach: Ship fast, be honest about what works and what doesn't, automate what you can, and keep building. I use AI and automation heavily — including a personal AI assistant (CloudBot) that manages projects through Telegram.
+
+I talk about: React Native, indie hacking, shipping apps, real revenue, AI-powered development, automation, and the vibecoding era.`,
+  apps: [
+    "Newsletterytics (newsletter analytics)",
+    "YapperX (voice → tweets)",
+    "BeatAI (AI music practice)",
+    "TeleprompterX (teleprompter)",
+    "MoonLatte (caffeine tracking)",
+    "VidNotes (video notes)",
+    "Coldsmith (cold exposure tracking)",
+    "FIFTN (focus timer)",
+    "AIVidly (sold on Flippa)",
+    "Rhava/Bibleily (sold on Flippa)",
+  ],
   links: {
     twitter: "https://x.com/pawelkarniej",
     website: "https://pawelkarniej.com",
     boilerplate: "https://shipreactnative.com",
+    linkedin: "https://linkedin.com/in/pawelkarniej",
+    github: "https://github.com/Karniej",
   }
 };
 
-let photos = [null, null]; // base64 data URLs
+// ============================================================================
+// BIO EDITOR
+// ============================================================================
+function toggleBioEditor() {
+  const editor = document.getElementById('bioEditor');
+  const isShowing = editor.classList.contains('show');
+  if (isShowing) {
+    const val = editor.value.trim();
+    if (val) {
+      CHANNEL.bio = val;
+      localStorage.setItem('yt_channel_bio', val);
+      document.getElementById('channelBioPreview').textContent = val.substring(0, 200) + (val.length > 200 ? '...' : '');
+    }
+    editor.classList.remove('show');
+  } else {
+    editor.value = localStorage.getItem('yt_channel_bio') || CHANNEL.bio;
+    editor.classList.add('show');
+    editor.focus();
+  }
+}
+
+// ============================================================================
+// STATE
+// ============================================================================
+let photos = [null, null];
 let currentPhotoIndex = 0;
 
 // ============================================================================
 // KEYS
 // ============================================================================
 function saveKeys() {
-  const rk = document.getElementById('replicateKey').value.trim();
   const ok = document.getElementById('openaiKey').value.trim();
-  if (rk) localStorage.setItem('yt_replicate_key', rk);
   if (ok) localStorage.setItem('yt_openai_key', ok);
   const el = document.getElementById('keySaved');
   el.style.display = 'inline';
@@ -377,20 +441,21 @@ function getKey(name) {
   return localStorage.getItem(`yt_${name}_key`) || '';
 }
 
-// Load keys on start
 window.addEventListener('DOMContentLoaded', () => {
-  const rk = getKey('replicate');
   const ok = getKey('openai');
-  if (rk) document.getElementById('replicateKey').value = rk;
   if (ok) document.getElementById('openaiKey').value = ok;
 
   // Load saved photos
   for (let i = 0; i < 2; i++) {
     const saved = localStorage.getItem(`yt_photo_${i}`);
-    if (saved) {
-      photos[i] = saved;
-      renderPhoto(i);
-    }
+    if (saved) { photos[i] = saved; renderPhoto(i); }
+  }
+
+  // Load saved bio
+  const savedBio = localStorage.getItem('yt_channel_bio');
+  if (savedBio) {
+    CHANNEL.bio = savedBio;
+    document.getElementById('channelBioPreview').textContent = savedBio.substring(0, 200) + (savedBio.length > 200 ? '...' : '');
   }
 });
 
@@ -398,7 +463,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // PHOTOS
 // ============================================================================
 function uploadPhoto(index) {
-  if (photos[index]) return; // Already has photo
+  if (photos[index]) return;
   currentPhotoIndex = index;
   document.getElementById('photoInput').click();
 }
@@ -448,27 +513,40 @@ function getSelectedStyle() {
 // ============================================================================
 // OPENAI CALLS
 // ============================================================================
-async function callOpenAI(messages, temperature = 0.9) {
+async function callOpenAI(messages, temperature = 0.9, max_tokens = 2000) {
   const key = getKey('openai');
   if (!key) { alert('Please enter your OpenAI API key'); return null; }
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({ model: 'gpt-4o-mini', messages, temperature, max_tokens })
+  });
+
+  if (!res.ok) throw new Error(`OpenAI error: ${await res.text()}`);
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+async function callDALLE(prompt) {
+  const key = getKey('openai');
+  if (!key) { alert('Please enter your OpenAI API key'); return null; }
+
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages,
-      temperature,
-      max_tokens: 2000,
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size: '1792x1024',
+      quality: 'hd',
     })
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`OpenAI error: ${err}`);
-  }
+  if (!res.ok) throw new Error(`DALL-E error: ${await res.text()}`);
   const data = await res.json();
-  return data.choices[0].message.content;
+  return data.data[0].url;
 }
 
 // ============================================================================
@@ -483,25 +561,42 @@ async function generateTitles() {
 
   try {
     const result = await callOpenAI([
-      { role: 'system', content: `You are a YouTube title expert for "${CHANNEL.name}" (${CHANNEL.handle}), a ${CHANNEL.niche} channel.
+      { role: 'system', content: `You write YouTube titles for "${CHANNEL.name}" (${CHANNEL.handle}), run by ${CHANNEL.creator}.
 
-Rules for titles:
-- Max 60 characters (YouTube truncates longer)
-- Create curiosity gaps and emotional hooks
-- Use numbers when relevant ("$10K/mo", "3 months", "10 apps")
-- Avoid clickbait that doesn't deliver
-- Match the honest indie dev tone — not guru/hustle culture
-- Use power words: "actually", "real", "honest", "how I", "why I stopped"
-- Avoid: ALL CAPS entire title, excessive punctuation, "you won't believe"
-- Some can be provocative/contrarian
+About the channel:
+${CHANNEL.bio}
 
-Return exactly 10 titles, one per line, numbered 1-10. No quotes around them.` },
+TITLE RULES:
+- Max 60 characters (hard limit — YouTube truncates)
+- Create a curiosity gap. The viewer should NEED to click.
+- Use contrast, tension, or unexpected juxtapositions
+- Numbers work when they feel real ("$847/mo", "in 11 days", "4 failed apps")
+- Power words: "actually", "real", "stopped", "broke", "failed", "accidentally", "quietly"
+- Contrarian > conventional. Challenge assumptions.
+- Talk like a real person, not a marketing playbook
+- NO all-caps titles, NO excessive punctuation, NO "you won't believe"
+- NO generic guru titles like "How to 10x Your Productivity"
+
+GOOD EXAMPLES:
+- "I Let an AI Bot Run My Business for a Week"
+- "My App Made $0 for 6 Months. Then This Happened."
+- "I Sold 2 Apps on Flippa. Here's What I Learned."
+- "Stop Asking for Permission to Ship"
+- "React Native is Dead (I Still Use It)"
+- "I Automated My Dev Workflow Through Telegram"
+
+BAD EXAMPLES:
+- "How to Build Apps Fast" (boring, generic)
+- "ULTIMATE Guide to React Native" (guru energy)
+- "You NEED to Try This!!!" (clickbait)
+
+Return exactly 10 titles, numbered 1-10. No quotes. Mix styles: some provocative, some honest, some curiosity-driven.` },
       { role: 'user', content: `Generate 10 YouTube titles for this video:\n\n${topic}` }
     ]);
 
     const titles = result.split('\n').filter(l => l.trim()).map(l => l.replace(/^\d+[\.\)]\s*/, '').replace(/^["']|["']$/g, ''));
     el.innerHTML = titles.map((t, i) =>
-      `<div class="title-item" onclick="copyText('${t.replace(/'/g, "\\'")}')">
+      `<div class="title-item" onclick="copyText(\`${t.replace(/`/g, '\\`')}\`)">
         <span class="num">${i + 1}</span>
         <span class="text">${t}</span>
         <span class="copy-icon">📋</span>
@@ -524,26 +619,54 @@ async function generateDescription() {
 
   try {
     const result = await callOpenAI([
-      { role: 'system', content: `You are a YouTube description writer for "${CHANNEL.name}" (${CHANNEL.handle}), run by ${CHANNEL.creator}.
+      { role: 'system', content: `You write YouTube descriptions for "${CHANNEL.name}" (${CHANNEL.handle}), run by ${CHANNEL.creator}.
 
-Channel: ${CHANNEL.niche}
+CHANNEL CONTEXT:
+${CHANNEL.bio}
 
-Write a YouTube description with these sections:
-1. Hook (2-3 sentences summarizing the video, front-load keywords)
-2. Key takeaways (bullet points with timestamps placeholder like 0:00)
-3. Links section with these real links:
-   - Ship React Native: ${CHANNEL.links.boilerplate}
-   - Twitter: ${CHANNEL.links.twitter}
-   - Website: ${CHANNEL.links.website}
-4. Hashtags (5-8 relevant ones)
+DESCRIPTION FORMAT — follow this structure exactly:
 
-Rules:
-- First 150 chars are crucial (shown in search results)
-- Include relevant keywords naturally
-- Keep it scannable
-- Honest tone, not salesy
-- No em dashes
-- Timestamps should be realistic placeholders (viewer fills in real times)` },
+[Opening paragraph: 2-3 sentences that hook and summarize. Write in first person. Conversational, like you're telling a friend what happened. Front-load keywords naturally.]
+
+[What I cover in this video — use bullet points with "•" character:]
+• point one
+• point two
+• point three
+• etc.
+
+[Optional: 1-2 sentence takeaway or call-to-action that feels natural, not salesy]
+
+⸻
+
+🐝 About The Appiarist
+I'm building a hive of apps — small projects, experiments, and products that compound over time.
+
+⸻
+
+🔗 Links
+• 🌐 ShipReactNative: ${CHANNEL.links.boilerplate}
+• 🐦 X / Twitter: ${CHANNEL.links.twitter}
+• 💼 LinkedIn: ${CHANNEL.links.linkedin}
+• 🌍 Website: ${CHANNEL.links.website}
+
+⸻
+
+🏷️ Tags
+[5-8 lowercase comma-separated tags relevant to the video]
+
+STYLE RULES:
+- First person, conversational, honest
+- No em dashes (use "—" sparingly or rewrite)
+- No corporate speak, no "in this video I'll show you how to..."
+- The opening should feel like a real person talking
+- Bullet points should be specific, not vague
+- Include relevant keywords naturally (React Native, indie dev, etc.)
+- First 150 chars matter most (shown in search)
+- DO NOT include timestamps (the creator adds those later)
+- Keep the energy real — if the video is about failure, own it
+
+REFERENCE STYLE (this is the vibe to match):
+"In this video, I'm sharing an experiment I've been running with CloudBot — using it to manage and code projects directly through Telegram. I gave it a separate email account, a separate GitHub account, and controlled access to my setup. Now I can move projects forward even when I'm not at my laptop."` },
       { role: 'user', content: `Write a YouTube description for this video:\n\n${topic}` }
     ], 0.7);
 
@@ -554,96 +677,64 @@ Rules:
 }
 
 // ============================================================================
-// GENERATE THUMBNAIL
+// GENERATE THUMBNAIL (DALL-E 3)
 // ============================================================================
 async function generateThumbnail() {
   const topic = document.getElementById('topicInput').value.trim();
   if (!topic) { alert('Please enter a topic or transcript'); return; }
 
-  const key = getKey('replicate');
-  if (!key) { alert('Please enter your Replicate API key'); return; }
+  const key = getKey('openai');
+  if (!key) { alert('Please enter your OpenAI API key'); return; }
 
   const el = document.getElementById('thumbnailResults');
   const promptEl = document.getElementById('thumbnailPrompt');
-  el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating thumbnail...</div></div>';
+  el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Creating thumbnail concept...</div></div>';
 
   const style = getSelectedStyle();
 
-  // First, use OpenAI to create a good image prompt
-  const promptResult = await callOpenAI([
-    { role: 'system', content: `You create image generation prompts for YouTube thumbnails. The channel is about React Native, indie hacking, and app development by a Polish developer.
-
-Style: "${style}"
-
-Rules for YouTube thumbnails:
-- 1280x720 resolution (16:9)
-- Bold, high contrast, readable at small sizes
-- Max 3-5 words of text on the thumbnail (big, bold)
-- Bright/saturated colors that pop against YouTube's white UI
-- For "bold-text" style: dramatic lighting, person's reaction, large text overlay
-- For "screenshot" style: clean app UI mockup with subtle glow
-- For "minimal" style: single object/icon, lots of negative space, 1-2 words
-- For "cinematic" style: dramatic lighting, shallow depth of field
-- For "before-after" style: split screen comparison
-- For "meme" style: funny expression, relatable situation
-
-Output ONLY the image generation prompt, nothing else. Make it detailed and specific for FLUX model. Do NOT include any text-on-image instructions (FLUX can't render text well). Focus on the visual scene/background.` },
-    { role: 'user', content: `Create a thumbnail image prompt for: ${topic.substring(0, 500)}` }
-  ], 0.8);
-
-  promptEl.innerHTML = `<div class="prompt-preview">Prompt: ${promptResult}</div>`;
-
   try {
-    // Call Replicate FLUX
-    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: 'black-forest-labs/flux-1.1-pro',
-        input: {
-          prompt: promptResult,
-          aspect_ratio: '16:9',
-          output_format: 'jpg',
-          output_quality: 90,
-          safety_tolerance: 5,
-          prompt_upsampling: true,
-        }
-      })
-    });
+    // Step 1: Generate a smart image prompt via GPT
+    const imagePrompt = await callOpenAI([
+      { role: 'system', content: `You create DALL-E 3 image prompts for YouTube thumbnails. The channel is about React Native indie hacking and app development.
 
-    if (!createRes.ok) {
-      throw new Error(`Replicate error: ${await createRes.text()}`);
-    }
+Style requested: "${style}"
 
-    const prediction = await createRes.json();
+THUMBNAIL RULES:
+- 16:9 aspect ratio (1792x1024)
+- Bold, high contrast, must be readable as a tiny 120px thumbnail
+- Saturated colors that pop against YouTube's white background
+- For "bold-text": dramatic lighting, person looking at screen/phone, bold 2-3 word text overlay
+- For "screenshot": clean app UI mockup with device frame, subtle glow effects
+- For "minimal": one object/icon centered, lots of negative space, max 2 big words
+- For "cinematic": dramatic lighting, shallow DOF look, moody atmosphere
+- For "before-after": clear split-screen comparison, left=bad right=good
+- For "meme": expressive face or reaction, relatable dev situation
 
-    // Poll for result
-    let result = prediction;
-    while (result.status === 'starting' || result.status === 'processing') {
-      await new Promise(r => setTimeout(r, 2000));
-      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
-        headers: { 'Authorization': `Bearer ${key}` }
-      });
-      result = await pollRes.json();
-      el.innerHTML = `<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> ${result.status}...</div></div>`;
-    }
+IMPORTANT:
+- DALL-E 3 CAN render text. Include 2-4 words of bold text if appropriate.
+- Use warm/hot colors (reds, oranges, yellows) — they perform best on YouTube
+- Include a human element when possible (hands typing, face, silhouette)
+- Make it DRAMATIC. Boring thumbnails don't get clicked.
 
-    if (result.status === 'succeeded' && result.output) {
-      const imgUrl = typeof result.output === 'string' ? result.output : result.output[0] || result.output;
-      el.innerHTML = `
-        <div class="thumbnail-item">
-          <img src="${imgUrl}" alt="Generated thumbnail" />
-        </div>
-        <div class="thumbnail-actions">
-          <a href="${imgUrl}" download="thumbnail.jpg" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Download</a>
-          <button class="btn btn-ghost" style="font-size:12px;" onclick="generateThumbnail()">Regenerate</button>
-        </div>`;
-    } else {
-      throw new Error(`Generation failed: ${result.error || result.status}`);
-    }
+Output ONLY the image generation prompt. Be detailed and specific. 2-3 sentences max.` },
+      { role: 'user', content: `Create a thumbnail prompt for: ${topic.substring(0, 500)}` }
+    ], 0.8);
+
+    promptEl.innerHTML = `<div class="prompt-preview">Prompt: ${imagePrompt}</div>`;
+
+    // Step 2: Generate with DALL-E 3
+    el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating thumbnail with DALL-E 3...</div></div>';
+
+    const imgUrl = await callDALLE(imagePrompt);
+
+    el.innerHTML = `
+      <div class="thumbnail-item">
+        <img src="${imgUrl}" alt="Generated thumbnail" crossorigin="anonymous" />
+      </div>
+      <div class="thumbnail-actions">
+        <a href="${imgUrl}" target="_blank" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Open Full Size</a>
+        <button class="btn btn-ghost" style="font-size:12px;" onclick="generateThumbnail()">Regenerate</button>
+      </div>`;
   } catch (err) {
     el.innerHTML = `<div class="thumbnail-item"><div class="loading" style="color:var(--accent)">${err.message}</div></div>`;
   }
@@ -673,9 +764,7 @@ async function generateAll() {
 // UTILS
 // ============================================================================
 function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('Copied to clipboard');
-  });
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
 }
 
 function showToast(msg) {
