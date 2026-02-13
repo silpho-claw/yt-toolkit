@@ -259,17 +259,14 @@
   </div>
   <p style="color:var(--text2);font-size:11px;margin-top:-24px;margin-bottom:24px;">Thumbnails use Gemini 2.5 Flash Image (nano-banana). Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a></p>
 
-  <!-- Photos -->
+  <!-- Face Photo -->
   <div class="photos">
-    <label>Your photos:</label>
+    <label>Your face photo:</label>
     <div class="photo-slot" id="photo1" onclick="uploadPhoto(0)">
       <span class="plus">+</span>
     </div>
-    <div class="photo-slot" id="photo2" onclick="uploadPhoto(1)">
-      <span class="plus">+</span>
-    </div>
     <input type="file" id="photoInput" accept="image/*" style="display:none" />
-    <span style="color:var(--text2);font-size:12px">Upload 1-2 photos for thumbnail reference</span>
+    <span style="color:var(--text2);font-size:12px">Upload a photo of yourself — used inside generated thumbnails</span>
   </div>
 
   <!-- Input -->
@@ -278,16 +275,21 @@
     <textarea id="topicInput" placeholder="Paste your video transcript, topic description, or a brief summary of what the video is about..."></textarea>
   </div>
 
-  <!-- Thumbnail style -->
+  <!-- Thumbnail controls -->
+  <div class="input-section">
+    <label>Thumbnail Text (what appears on the thumbnail)</label>
+    <input type="text" id="thumbTextInput" placeholder='e.g. "CLOUD BOT MAGIC!" or "I SHIPPED IT" — leave empty for AI to suggest' style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:10px;font-size:15px;font-family:'Space Grotesk',sans-serif;font-weight:700;" />
+  </div>
+
   <div class="input-section">
     <label>Thumbnail Style</label>
     <div class="style-chips">
-      <div class="chip active" data-style="bold-text">Bold Text + Face</div>
-      <div class="chip" data-style="before-after">Before / After</div>
-      <div class="chip" data-style="screenshot">App Screenshot</div>
-      <div class="chip" data-style="minimal">Minimal / Clean</div>
-      <div class="chip" data-style="cinematic">Cinematic</div>
-      <div class="chip" data-style="meme">Meme / Reaction</div>
+      <div class="chip active" data-style="face-left-text-right">Face Left + Text Right</div>
+      <div class="chip" data-style="face-center-text-top">Face Center + Text Top</div>
+      <div class="chip" data-style="face-with-icon">Face + Logo/Icon</div>
+      <div class="chip" data-style="screenshot-reaction">Screenshot + Reaction</div>
+      <div class="chip" data-style="dramatic">Dramatic / Dark</div>
+      <div class="chip" data-style="split">Split Screen</div>
     </div>
   </div>
 
@@ -425,7 +427,7 @@ function toggleBioEditor() {
 // ============================================================================
 // STATE
 // ============================================================================
-let photos = [null, null];
+let photos = [null];
 let currentPhotoIndex = 0;
 
 // ============================================================================
@@ -446,17 +448,34 @@ function getKey(name) {
 }
 
 // Gemini 2.5 Flash Image (nano-banana) for thumbnail generation
-async function callGeminiImage(prompt) {
+// Supports optional input image (face photo) that gets incorporated
+async function callGeminiImage(prompt, inputImageBase64 = null) {
   const key = getKey('gemini');
   if (!key) { alert('Please enter your Google Gemini API key'); return null; }
+
+  const parts = [];
+
+  // Add face photo as input if provided
+  if (inputImageBase64) {
+    // Extract base64 data and mime type from data URL
+    const match = inputImageBase64.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) {
+      parts.push({
+        inlineData: {
+          mimeType: match[1],
+          data: match[2]
+        }
+      });
+    }
+  }
+
+  parts.push({ text: prompt });
 
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
+      contents: [{ parts }],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       }
@@ -469,10 +488,9 @@ async function callGeminiImage(prompt) {
   }
 
   const data = await res.json();
-  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const responseParts = data?.candidates?.[0]?.content?.parts || [];
   
-  // Find the image part
-  for (const part of parts) {
+  for (const part of responseParts) {
     if (part.inlineData) {
       return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
     }
@@ -486,10 +504,8 @@ window.addEventListener('DOMContentLoaded', () => {
   if (ok) document.getElementById('openaiKey').value = ok;
   if (gk) document.getElementById('geminiKey').value = gk;
 
-  for (let i = 0; i < 2; i++) {
-    const saved = localStorage.getItem(`yt_photo_${i}`);
-    if (saved) { photos[i] = saved; renderPhoto(i); }
-  }
+  const savedPhoto = localStorage.getItem('yt_photo_0');
+  if (savedPhoto) { photos[0] = savedPhoto; renderPhoto(0); }
 
   const savedBio = localStorage.getItem('yt_channel_bio');
   if (savedBio) {
@@ -704,139 +720,61 @@ async function generateThumbnail() {
   const gKey = getKey('gemini');
   if (!gKey) { alert('Please enter your Google Gemini API key'); return; }
 
+  const faceData = photos[0];
+  if (!faceData) { alert('Upload your face photo first — it gets used inside the thumbnail'); return; }
+
   const el = document.getElementById('thumbnailResults');
   const promptEl = document.getElementById('thumbnailPrompt');
-  el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Creating thumbnail concept...</div></div>';
+  el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating thumbnail with nano-banana...</div></div>';
 
   const style = getSelectedStyle();
+  let thumbText = document.getElementById('thumbTextInput').value.trim();
 
   try {
-    // Step 1: Generate thumbnail text (2-4 punchy words)
-    el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Creating thumbnail concept...</div></div>';
-
-    const thumbTextResult = await callOpenAI([
-      { role: 'system', content: `You write thumbnail text for YouTube videos. Output ONLY 2-4 punchy words that create curiosity. These get overlaid as big bold text on a thumbnail.
-
-Rules:
-- MAX 4 words. Ideally 2-3.
-- Create tension, curiosity, or emotion
-- Use contrast: "$0 → $10K", "BROKE IT", "IT WORKS", "never again"
-- All caps or mixed case — whatever hits harder
-- NO full sentences. NO clickbait like "YOU WON'T BELIEVE"
-
-Good: "I MASS I SHIPPED IT", "$0 REVENUE", "IT'S DEAD", "SOLD MY APP", "AI CODES NOW"
-Bad: "How To Build Apps Faster" (too long, boring)
-
-Return ONLY the text. Nothing else.` },
-      { role: 'user', content: topic.substring(0, 300) }
-    ], 1.0);
-
-    const thumbText = thumbTextResult.trim().replace(/^["']|["']$/g, '');
-
-    // Step 2: Generate clean background with Gemini
-    const bgPrompt = await callOpenAI([
-      { role: 'system', content: `You create image prompts for YouTube thumbnail BACKGROUNDS. The creator will composite their face photo on top, so DO NOT include any people, faces, or hands.
-
-Style: "${style}"
-
-RULES:
-- Clean, simple background that supports the topic
-- NO people, NO faces, NO hands, NO text
-- Bold colors, high contrast, slightly blurred/gradient feel
-- Think: solid gradients, abstract shapes, subtle code/tech elements, neon accents
-- Dark backgrounds work best (the face photo and white text go on top)
-- For "minimal": solid dark gradient with subtle accent color
-- For "cinematic": moody dark with light rays or bokeh
-- For "screenshot": dark desk/workspace setting, no person
-- For "before-after": split background, dark left / bright right
-- For "bold-text": dramatic gradient or abstract pattern
-- For "meme": bright/chaotic background, emojis or icons floating
-- Keep it SIMPLE. The face and text are the stars, not the background.
-
-Output ONLY the prompt. 1-2 sentences. No explanation.` },
-      { role: 'user', content: `Background for a video about: ${topic.substring(0, 300)}` }
-    ], 0.8);
-
-    promptEl.innerHTML = `<div class="prompt-preview">BG: ${bgPrompt}<br/>Text: ${thumbText}</div>`;
-
-    el.innerHTML = '<div class="thumbnail-item"><div class="loading"><span class="spinner"></span> Generating background with nano-banana...</div></div>';
-
-    const bgDataUrl = await callGeminiImage(bgPrompt);
-
-    // Step 3: Composite face + background + text in canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
-    const ctx = canvas.getContext('2d');
-
-    // Draw background
-    const bgImg = new Image();
-    bgImg.crossOrigin = 'anonymous';
-    await new Promise((resolve, reject) => {
-      bgImg.onload = resolve;
-      bgImg.onerror = reject;
-      bgImg.src = bgDataUrl;
-    });
-    ctx.drawImage(bgImg, 0, 0, 1280, 720);
-
-    // Draw face photo (if uploaded) on the left side
-    const faceData = photos[0] || photos[1];
-    if (faceData) {
-      const faceImg = new Image();
-      await new Promise((resolve, reject) => {
-        faceImg.onload = resolve;
-        faceImg.onerror = reject;
-        faceImg.src = faceData;
-      });
-      // Position face on left ~40% of frame, bottom-aligned
-      const faceH = 720;
-      const faceW = (faceImg.width / faceImg.height) * faceH;
-      const faceX = -faceW * 0.1; // slightly off-left
-      ctx.drawImage(faceImg, faceX, 0, faceW, faceH);
+    // If no custom text, ask GPT for a suggestion
+    if (!thumbText) {
+      const thumbTextResult = await callOpenAI([
+        { role: 'system', content: `Write 2-4 punchy words for a YouTube thumbnail. ALL CAPS. Create curiosity or tension. Examples: "SHIPPED IT", "AI CODES NOW", "$0 REVENUE", "CLOUD BOT MAGIC". Return ONLY the text.` },
+        { role: 'user', content: topic.substring(0, 300) }
+      ], 1.0);
+      thumbText = thumbTextResult.trim().replace(/^["']|["']$/g, '');
+      document.getElementById('thumbTextInput').value = thumbText;
     }
 
-    // Draw text overlay — right side, big bold white with black stroke
-    if (thumbText) {
-      const lines = thumbText.length > 12 ? thumbText.split(/\s+/).reduce((acc, word) => {
-        const last = acc[acc.length - 1];
-        if (last && (last + ' ' + word).length <= 14) {
-          acc[acc.length - 1] = last + ' ' + word;
-        } else {
-          acc.push(word);
-        }
-        return acc;
-      }, []) : [thumbText];
+    // Build the Gemini prompt — send face photo + describe the thumbnail
+    const styleInstructions = {
+      'face-left-text-right': `Place the person from the photo on the LEFT side of the image (taking up about 40% of the frame, from waist/chest up). On the RIGHT side, place the text "${thumbText}" in big bold white letters with a subtle dark outline. The background should be a clean, dark gradient or abstract pattern related to the topic. The person should look natural, not distorted.`,
+      'face-center-text-top': `Place the person from the photo in the CENTER of the image (chest up, looking at camera). Place the text "${thumbText}" at the TOP of the image in big bold white letters with dark outline. Dark moody background. The person should look natural and undistorted.`,
+      'face-with-icon': `Place the person from the photo on one side. On the other side, include a relevant icon or logo related to the topic, with the text "${thumbText}" in bold. Clean dark background. Person looks natural.`,
+      'screenshot-reaction': `Create a split: one side shows a simplified app/code screenshot related to the topic, other side shows the person from the photo reacting to it. Text "${thumbText}" overlaid. Dark background.`,
+      'dramatic': `Place the person from the photo looking intense, with dramatic dark lighting and shadows. Text "${thumbText}" in large bold white letters. Moody, cinematic feel. Deep dark background with subtle color accents.`,
+      'split': `Split the image in half. Left side: the person from the photo. Right side: a visual related to the topic with text "${thumbText}" in bold white. Clean divide between the two halves.`
+    };
 
-      const fontSize = lines.length > 2 ? 80 : lines.length > 1 ? 100 : 120;
-      ctx.font = `900 ${fontSize}px "Space Grotesk", "Arial Black", Impact, sans-serif`;
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
+    const geminiPrompt = `Create a YouTube thumbnail image (16:9 aspect ratio, 1280x720).
 
-      const textX = 1230;
-      const totalH = lines.length * (fontSize * 1.15);
-      const startY = (720 - totalH) / 2 + fontSize / 2;
+${styleInstructions[style] || styleInstructions['face-left-text-right']}
 
-      lines.forEach((line, i) => {
-        const y = startY + i * (fontSize * 1.15);
-        // Black stroke
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = fontSize * 0.12;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(line, textX, y);
-        // White fill
-        ctx.fillStyle = '#fff';
-        ctx.fillText(line, textX, y);
-      });
-    }
+Topic: ${topic.substring(0, 200)}
 
-    const finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+CRITICAL RULES:
+- Keep the person's face EXACTLY as it appears in the photo — do not change, age, or distort facial features
+- The text "${thumbText}" must be clearly readable, large, bold white with dark outline
+- Background should be simple and clean — not busy or cluttered
+- High contrast so it reads well as a small thumbnail
+- Professional YouTube thumbnail quality
+- Do NOT add any extra text beyond "${thumbText}"`;
+
+    promptEl.innerHTML = `<div class="prompt-preview">Text: ${thumbText} | Style: ${style}</div>`;
+
+    const imgDataUrl = await callGeminiImage(geminiPrompt, faceData);
 
     el.innerHTML = `
       <div class="thumbnail-item">
-        <img src="${finalDataUrl}" alt="Generated thumbnail" />
+        <img src="${imgDataUrl}" alt="Generated thumbnail" />
       </div>
       <div class="thumbnail-actions">
-        <a href="${finalDataUrl}" download="thumbnail.jpg" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Download</a>
+        <a href="${imgDataUrl}" download="thumbnail.jpg" class="btn btn-secondary" style="text-decoration:none;font-size:12px;">Download</a>
         <button class="btn btn-ghost" style="font-size:12px;" onclick="generateThumbnail()">Regenerate</button>
       </div>`;
   } catch (err) {
