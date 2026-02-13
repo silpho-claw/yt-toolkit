@@ -847,21 +847,30 @@ async function generateThumbnail() {
 
     // Build direct prompt for Gemini
     const styleInstructions = {
-      'face-left-text-right': `Edit this photo to create a wide landscape YouTube thumbnail. Place the person on the left third of the frame, shown from the chest up with their full head and hair visible and plenty of space above their head. On the right two-thirds of the image, display the text "${thumbText}" in ${textStyleDesc}. Replace the background behind the person with a clean, dark blue-to-purple gradient. The overall image must be in 16:9 landscape format.`,
-      'face-center-text-top': `Edit this photo to create a wide landscape YouTube thumbnail. Place the person centered in the lower two-thirds of the frame, shown from the chest up. Display the text "${thumbText}" in ${textStyleDesc} across the top quarter of the image. Replace the background with a dark moody gradient. 16:9 landscape format.`,
-      'face-with-icon': `Edit this photo to create a wide landscape YouTube thumbnail. Place the person on the left side, chest up. On the right side, add a large, simple icon or symbol related to "${topic.substring(0, 50)}" alongside the text "${thumbText}" in ${textStyleDesc}. Dark background. 16:9 landscape format.`,
-      'screenshot-reaction': `Edit this photo to create a wide landscape YouTube thumbnail. Place the person on the right third looking surprised or thoughtful, chest up. On the left two-thirds, show a simplified code editor or app interface screenshot. Overlay the text "${thumbText}" in ${textStyleDesc} at the bottom. Dark background. 16:9 landscape format.`,
-      'dramatic': `Edit this photo to create a wide landscape YouTube thumbnail with dramatic, cinematic lighting. Place the person slightly left of center, chest up, with moody side lighting creating shadows. Display the text "${thumbText}" in ${textStyleDesc} on the right side. Very dark background with subtle colored rim lighting on the person. 16:9 landscape format.`,
-      'split': `Edit this photo to create a wide landscape YouTube thumbnail with a clean vertical split. Left half: the person from the photo, chest up, on a dark background. Right half: a bold solid color background with the text "${thumbText}" centered in ${textStyleDesc}. 16:9 landscape format.`,
-      'podcast-style': `Edit this photo to create a wide landscape YouTube thumbnail in a podcast/talking head style. Place the person centered, shown from chest up, as if sitting at a desk or in front of a microphone. Replace the background with a warm, slightly blurred room or studio setting. Display the text "${thumbText}" in ${textStyleDesc} at the bottom or top. 16:9 landscape format.`,
-      'breaking-news': `Edit this photo to create a wide landscape YouTube thumbnail styled like breaking tech news. Place the person on the left, chest up. On the right, add a red and white "BREAKING" news-style banner or alert graphic with the text "${thumbText}" in ${textStyleDesc}. Dark blue/navy background. 16:9 landscape format.`,
-      'versus': `Edit this photo to create a wide landscape YouTube thumbnail. Place the person on the left side, chest up. On the right side, add a "VS" graphic or opposing element related to the topic. Display the text "${thumbText}" in ${textStyleDesc} across the middle. Dark background with a red/orange split effect. 16:9 landscape format.`,
-      'ranking-list': `Edit this photo to create a wide landscape YouTube thumbnail. Place the person on the right side, chest up, with an expressive face. On the left side, display a numbered ranking list (1. 2. 3.) with simple icons or logos, with "${thumbText}" as a header in bold white font. Dark background. 16:9 landscape format.`
+      'face-left-text-right': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Completely remove the original background and replace it with a solid black background. Place the person on the left third, chest up, full head visible with space above. On the right two-thirds, render "${thumbText}" in ${textStyleDesc}. Background must be solid black, not purple, not blue — pure black.`,
+
+      'face-center-text-top': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Completely remove the original background and replace it with a bright saturated red (#CC0000) background. Place the person centered in the lower half, chest up. Display "${thumbText}" in ${textStyleDesc} across the top third. High contrast between red background and text.`,
+
+      'face-with-icon': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Completely remove the original background and replace it with a solid dark teal (#0D3B3B) background. Person on the left, chest up. On the right, add a large glowing white or cyan icon related to "${topic.substring(0, 50)}" next to "${thumbText}" in ${textStyleDesc}.`,
+
+      'screenshot-reaction': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Left 60%: a realistic dark-themed VS Code editor with colorful syntax-highlighted code. Right 40%: the person from the photo, chest up, background removed, appearing to react to the code. "${thumbText}" in ${textStyleDesc} across the bottom.`,
+
+      'dramatic': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Completely remove the background and make it pitch black. Add dramatic warm orange/amber rim lighting from the left side illuminating only one half of the person's face. Person left of center, chest up. "${thumbText}" in ${textStyleDesc} on the right. Dark, moody, cinematic like a movie poster.`,
+
+      'split': `Edit this photo into a wide 16:9 landscape YouTube thumbnail with a sharp vertical split. Left half: the person, chest up, on a completely black background. Right half: solid bright yellow (#FFD600) background with "${thumbText}" in large bold black font centered. Clean hard dividing line between halves.`,
+
+      'podcast-style': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Remove the background and replace it with a warm cozy podcast studio: dark wood desk, soft warm amber bokeh lights, a silver microphone visible. Person centered, chest up. "${thumbText}" in ${textStyleDesc} at the top. Warm and inviting.`,
+
+      'breaking-news': `Edit this photo into a wide 16:9 landscape YouTube thumbnail styled as TV breaking news. Person on the left, chest up, background removed. Replace background with a dark navy blue newsroom graphic with subtle grid pattern. Add a thick red (#FF0000) banner across the bottom third containing "${thumbText}" in large bold white text. Add a small red "BREAKING" label above the banner.`,
+
+      'versus': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Person on the left third, chest up, background removed. A dramatic diagonal lightning bolt or energy crack splits the center. Right third has an opposing icon related to the topic. Background: navy blue on left, dark red on right. "${thumbText}" in ${textStyleDesc} at the top spanning both sides.`,
+
+      'ranking-list': `Edit this photo into a wide 16:9 landscape YouTube thumbnail. Person on the right third, chest up, background removed. Replace background with solid dark green (#0A2E1A). Left two-thirds: a clean numbered list (1. 2. 3. 4.) with simple white icons, like a leaderboard. "${thumbText}" as a header at the top in ${textStyleDesc}.`
     };
 
     const geminiPrompt = `${styleInstructions[style] || styleInstructions['face-left-text-right']}
 
-Avoid: cropping the person's head, cutting off any text at edges, making the image portrait/vertical, distorting or changing the person's facial features, adding any extra text beyond "${thumbText}".`;
+Important: Output must be 16:9 landscape. Preserve the person's face exactly. Do NOT keep the original background — replace it completely as described. All text "${thumbText}" must be fully visible. No extra text.`;
 
     promptEl.innerHTML = `<div class="prompt-preview">Text: ${thumbText} | Style: ${style}</div>`;
 
